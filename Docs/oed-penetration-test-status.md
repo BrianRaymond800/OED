@@ -37,13 +37,13 @@ Open Energy Dashboard – Penetration Test Final Report (July 25, 2024)
 | 5 | Hard-Coded Database Credentials | Medium | #71, #30, #101 | 🟡 In Progress | Tracking, review/design, and test/validation issues exist. Need to confirm removal of all hard-coded credentials, validate DB user documentation, and verify secure configuration via testing. | P2 |
 | 6 | Missing Content Security Policy | Medium | Issues #72, #102, #31 | ✅ Done | CSP implemented and validated; design, implementation, and testing completed | P2 |
 | 7 | Known Vulnerabilities in Software Components | Medium | Design docs in repo; related dependency discussions | ⚠️ Design / Discussion Only | Vulnerable components identified and documented, but no full implementation or validation completed | P2 |
-| 8 | Insufficient Input Validation |  |  |  |  |  |
-| 9 | File Upload Denial of Service |  |  |  |  |  |
-|10 | Insecure Password Authentication |  |  |  |  |  |
-|11 | Insufficient Session Expiration |  |  |  |  |  |
-|12 | Insufficient Brute Force Protection |  |  |  |  |  |
-|13 | Valid User Enumeration |  |  |  |  |  |
-|14 | Information Disclosure |  |  |  |  |  |
+| 8 | Insufficient Input Validation | Medium | Issue #74 (main), #106 (test/validate) | 🟡 In Progress | Input validation gaps identified; testing and enforcement still ongoing | P2 |
+| 9 | File Upload Denial of Service | Medium | Issue #75 (main), #88 (design), #107 (test/validate) | 🟡 In Progress | Upload size/type limits and DoS protections still under design and validation | P2 |
+| 10 | Insecure Password Authentication | Minimal | Issue #76 (main), #89 (design), #108 (test/validate) | 🟡 In Progress | Password handling improvements under design and validation; fixes not yet merged | P1 |
+| 11 | Insufficient Session Expiration | low | Design doc + related GitHub issue(s) | ⚠️ Design Only | Session expiration strategy documented, but no implementation or validation merged | P1 |
+| 12 | Insufficient Brute Force Protection | Low | Issues #78, #110; PR #143 | 🟡 In Progress | Design completed and fix merged, but validation issues still open | P1 |
+| 13 | Valid User Enumeration | Minimal | Issues #79, #111, #92 | 🟡 In Progress | Design and validation issues are open; no implementation merged yet | P1 |
+| 14 | Information Disclosure | Minimal | Issues #80, #93, #112 | 🟡 In Progress | Design and validation issues exist; no implementation PR merged yet | P1 |
 |15 | Clickjacking (UI Redress) |  |  |  |  |  |
 |16 | Log Injection |  |  |  |  |  |
 |17 | Session Tokens Stored in Local Storage |  |  |  |  |  |
