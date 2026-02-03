@@ -32,21 +32,11 @@ const escapeHtml = require('escape-html');
 const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 
+// Here, the use of upload.array() allows the lowercaseParams middleware to
+// integrate form/multipart data into the generic parameter pipeline along with
+// POST and GET params.
 router.use(upload.any(), middleware.lowercaseAllParamNames);
 router.use(middleware.paramsLookupMixin);
-
-function canonicalize(value) {
-	return String(value).normalize('NFKC');
-}
-
-function sanitizeForLog(value) {
-	return canonicalize(value).replace(/[\r\n\t]/g, '_');
-}
-
-function getClientIp(req) {
-	const rawIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
-	return sanitizeForLog(rawIp);
-}
 
 /**
  * Inform the client of a failure (406 Not Acceptable), and log it.
@@ -57,15 +47,12 @@ function getClientIp(req) {
  *
  */
 function failure(req, res, reason = '') {
-	const ip = getClientIp(req);
+	reason = escapeHtml(reason); // escape html to sanitize html
+	const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+	log.error(`Obvius protocol request from ${ip} failed due to ${reason}`);
 
-	log.error('Obvius protocol request failed', {
-		ip,
-		reason: sanitizeForLog(reason)
-	});
-
-	res.status(406)
-		.send(`<pre>\n${escapeHtml(reason)}\n</pre>\n`);
+	res.status(406) // 406 Not Acceptable error, as required by Obvius
+		.send(`<pre>\n${reason}\n</pre>\n`);
 }
 
 /**
@@ -77,8 +64,9 @@ function failure(req, res, reason = '') {
  *
  */
 function success(req, res, comment = '') {
-	res.status(200)
-		.send(`<pre>\nSUCCESS\n${escapeHtml(comment)}</pre>\n`);
+	comment = escapeHtml(comment); // escape html to sanitize html
+	res.status(200) // 200 OK
+		.send(`<pre>\nSUCCESS\n${comment}</pre>\n`);
 }
 
 /**
@@ -87,28 +75,24 @@ function success(req, res, comment = '') {
  * @param {express.Response} res the response object
  */
 function handleStatus(req, res) {
-	const ip = getClientIp(req);
-
-	const paramNames = [
-		'MODE', 'SENDDATATRACE', 'SERIALNUMBER', 'GSMSIGNAL',
+	// Grab the IP of the requester.
+	const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+	// These are all the params OED cares about. They just get logged.
+	// Note that this route does NOT log the password, for security reasons.
+	const paramNames = ['MODE', 'SENDDATATRACE', 'SERIALNUMBER', 'GSMSIGNAL',
 		'LOOPNAME', 'UPTIME', 'PERCENTBLOCKSINUSE', 'PERCENTINODESINUSE',
 		'UPLOADATTEMPT', 'ACQUISUITEVERSION', 'USRVERSION', 'ROOTVERSION',
-		'KERNELVERSION', 'FIRMWAREVERSION', 'BOOTCOUNT', 'BATTERYGOOD'
-	];
-
-	const loggedParams = {};
-
+		'KERNELVERSION', 'FIRMWAREVERSION', 'BOOTCOUNT', 'BATTERYGOOD'];
+	// Build a log entry for this request
+	let s = `Handling request from ${ip}\n`;
 	for (const paramName of paramNames) {
-		const value = req.param(paramName);
-		if (value !== false && value !== undefined) {
-			loggedParams[paramName] = sanitizeForLog(value);
+		if (req.param(paramName) !== false && req.param(paramName) !== undefined) {
+			s += `\tGot ${paramName}: ${req.param(paramName)}\n`;
+		} else {
+			s += `\tNo ${paramName} submitted\n`;
 		}
 	}
-
-	log.info('Handling Obvius STATUS request', {
-		ip,
-		params: loggedParams
-	});
+	log.info(s);
 
 	success(req, res);
 }
@@ -117,10 +101,10 @@ function handleStatus(req, res) {
  * Logs the Obvius request and sets the req.IP field to be the ip address.
  */
 function obviusLog(req, res, next) {
-	const ip = getClientIp(req);
+	// Log the IP of the requester
+	const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 	req.IP = ip;
-
-	log.info('Received Obvius protocol request', { ip });
+	log.info(`Received Obvious protocol request from ${ip}`);
 	next();
 }
 
@@ -128,7 +112,11 @@ function obviusLog(req, res, next) {
  * Verifies an Obvius request via username and password.
  */
 function verifyObviusUser(req, res, next) {
+	// First we ensure that the password and username parameters are provided.
 	const password = req.param('password');
+	// TODO This is allowing for backwards compatibility if previous obvius meters are using the'email' parameter
+	// instead of the 'username' parameter to login. Developers need to decide in the future if we should deprecate
+	// email or continue to allow this backwards compatibility
 	const username = req.param('username') || req.param('email');
 
 	if (!password) {
@@ -137,12 +125,13 @@ function verifyObviusUser(req, res, next) {
 	} else if (!username) {
 		failure(req, res, 'username parameter is required.');
 		return;
-	} else {
+	} else { // Authenticate Obvius user.
 		req.body.username = username;
 		req.body.password = password;
 		obviusUsernameAndPasswordAuthMiddleware('Obvius pipeline')(req, res, next);
 	}
 }
+
 
 /**
  * Handle an Obvius upload request.
@@ -167,49 +156,37 @@ router.all('/', obviusLog, verifyObviusUser, async (req, res) => {
 			failure(req, res, 'Logfile Upload Requires Serial Number');
 			return;
 		}
-
 		const conn = getConnection();
 		const loadLogfilePromises = [];
-
 		for (const fx of req.files) {
-			log.info('Received logfile upload', {
-				ip,
-				field: sanitizeForLog(fx.fieldname),
-				filename: sanitizeForLog(fx.originalname)
-			});
-
+			log.info(`Received ${fx.fieldname}: ${fx.originalname}`);
+			// Logfiles are always gzipped.
 			let data;
 			try {
 				data = zlib.gunzipSync(fx.buffer);
 			} catch (err) {
-				log.error('Unable to gunzip incoming buffer', {
-					ip,
-					error: sanitizeForLog(err.message)
-				});
-				failure(req, res, 'Unable to gunzip incoming buffer');
+				log.error(err);
+				failure(req, res, `Unable to gunzip incoming buffer: ${err}`);
 				return;
 			}
-
-			loadLogfilePromises.push(
-				loadLogfileToReadings(
-					sanitizeForLog(req.param('serialnumber')),
-					ip,
-					data,
-					conn
-				)
-			);
+			// The original code did not await for the Promise to finish. The new version
+			// allows the files to run in parallel (as before) but then wait for them all
+			// to finish before returning.
+			loadLogfilePromises.push(loadLogfileToReadings(req.param('serialnumber'), ip, data, conn));
 		}
-
-		try {
-			await Promise.all(loadLogfilePromises);
+		// TODO This version returns an error. Should check all usage to be sure it is properly handled.
+		Promise.all(loadLogfilePromises).then(() => {
 			success(req, res, 'Logfile Upload IS PROVISIONAL');
-		} catch (err) {
-			log.warn('Logfile Upload had issues', {
-				ip,
-				error: sanitizeForLog(err.message)
-			});
+		}).catch((err) => {
+			log.warn(`Logfile Upload had issues from ip: ${ip}`, err)
 			failure(req, res, 'Logfile Upload had issues');
-		}
+		});
+		// This return may not be needed.
+		return;
+	}
+
+	if (mode === obvius.mode.config_file_download) {
+		failure(req, res, 'Config Download Not Implemented');
 		return;
 	}
 
@@ -220,6 +197,7 @@ router.all('/', obviusLog, verifyObviusUser, async (req, res) => {
 	}
 
 	if (mode === obvius.mode.config_file_upload) {
+		// Check required parameters
 		if (!req.param('serialnumber', false)) {
 			failure(req, res, 'Config Upload Requires Serial Number');
 			return;
@@ -228,36 +206,26 @@ router.all('/', obviusLog, verifyObviusUser, async (req, res) => {
 			failure(req, res, 'Config Upload Requires Modbus Device ID');
 			return;
 		}
-
 		const conn = getConnection();
-
 		for (const fx of req.files) {
-			log.info('Received config file upload', {
-				ip,
-				field: sanitizeForLog(fx.fieldname),
-				filename: sanitizeForLog(fx.originalname)
-			});
+			log.info(`Received ${fx.fieldname}: ${fx.originalname}`);
 
 			let data;
 			try {
 				data = zlib.gunzipSync(fx.buffer).toString('utf-8');
-			} catch {
+			} catch (error) {
 				data = fx.buffer.toString('utf-8');
 			}
 
-			const cf = new Configfile(
-				undefined,
-				sanitizeForLog(req.param('serialnumber')),
-				sanitizeForLog(req.param('modbusdevice')),
-				moment(),
-				md5(data),
-				data,
-				true
-			);
-
+			const cf = new Configfile(undefined, req.param('serialnumber'), req.param('modbusdevice'), moment(), md5(data), data, true);
 			await cf.insert(conn);
-			success(req, res, `Acquired config log with filename ${cf.makeFilename()}.`);
+			success(req, res, `Acquired config log with (pseudo)filename ${cf.makeFilename()}.`);
 		}
+		return;
+	}
+
+	if (mode === obvius.mode.test) {
+		failure(req, res, 'Test Not Implemented');
 		return;
 	}
 
