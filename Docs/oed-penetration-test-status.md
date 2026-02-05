@@ -36,7 +36,7 @@ official OpenEnergyDashboard/OED repository when applicable.
 |-----------|-------|----------|------------------|---------------------------|----------------|--------|-------------------------|
 | 1 | Insufficient Access Controls | Critical | Issue #118 | — | 🟡 In Progress | Andrew | Access control enforcement still incomplete |
 | 2 | Insecure Default Configuration | High | Team-5 tracking | OED PR #1554 | 🟡 In Progress | Zack | Fix exists but PR still open and requires changes |
-| 3 | Cross-Site Scripting (XSS) | Medium | #69, #98 | — | ✅ Done | Zach | Fix and validation completed |
+| 3 | Cross-Site Scripting (XSS) | Medium | #69, #98 | OED PR #1544 | ✅ Done | Zach | Fix and validation completed |
 | 4 | Insecure Docker Configuration | Medium | #70, #99 | — | 🔴 Not Started | — | No assigned owner and no implementation work initiated |
 | 5 | Hard-Coded Database Credentials | Medium | #71, #101 | — | 🔴 Not Started | — | Credentials review and validation pending |
 | 6 | Missing Content Security Policy | Medium | #72, #102 | OED PR #1567 | 🟡 In Progress | Brian | PR open and requires requested changes |
