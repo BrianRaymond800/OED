@@ -1,109 +1,82 @@
-# **Research & Design Proposal**
+# Research & Design Proposal
 
 **Issue 11 – Insufficient Session Expiration (CWE-613)**
 
-## **1\. Introduction**
+## 1. Introduction
 
-This document presents research findings and a proposed technical design to address **Problem Report 11 – Insufficient Session Expiration** in the Open Energy Dashboard (OED) system.
+This document proposes a technical design to improve **session expiration handling** in the Open Energy Dashboard (OED) authentication system.
 
-The vulnerability was identified during penetration testing and affects the Authentication API component. The issue arises from how session tokens (JWTs) are handled during logout and expiration, allowing previously issued tokens to remain valid server-side even after a user logs out.
+The issue arises from how session tokens (JWTs) are handled during logout and expiration, allowing previously issued tokens to remain valid server-side even after a user logs out.
 
-Although the severity is classified as *Low*, the impact on confidentiality and integrity is *Medium*, and the weakness falls under **OWASP Top 10 2021 – A07: Identification and Authentication Failures**.
+Although the severity is classified as *Low*, the impact on confidentiality and integrity is *Medium*, and the weakness aligns with **OWASP Top 10 2021 – A07: Identification and Authentication Failures**.
 
-## **2\. Summary of Findings (from Penetration Test)**
+
+## 2. Current Behavior
 
 OED currently uses **stateless JSON Web Tokens (JWTs)** as session tokens:
 
-* Tokens are stored client-side (browser storage).
+- Tokens are stored client-side (browser storage).
+- Tokens expire after ~24 hours (`exp` claim).
+- On logout:
+  - The client deletes the token locally.
+  - The server **does not invalidate the token**.
 
-* Tokens expire after \~24 hours (exp claim).
+### Resulting Risk
 
-* On logout:
+If an attacker obtains a valid JWT:
 
-  * The client deletes the token locally.
+- The token can still be used after logout.
+- Access continues until natural expiration.
+- The attacker gains the same privileges as the user.
 
-  * The server **does not invalidate the token**.
 
-### **Resulting problem:**
-
-If an attacker steals a valid JWT:
-
-* They can continue using the token after the user logs out.
-
-* The token remains valid until natural expiration.
-
-* The attacker gains the same privileges as the victim user.
-
-### **Confirmed by testing:**
-
-Replaying a copied /api/verification request with the same token **after logout** still succeeds:
-
-                { "success": true }
-
-### **Classification**
-
-* **CWE:** 613 – Insufficient Session Expiration
-
-* **STRIDE:** Spoofing
-
-* **OWASP 2021:** A07 – Identification & Authentication Failures
-
-* **CVSS v3:** 4.8 (Low)
-
-## **3\. Security Goal**
+## 3. Security Goal
 
 Ensure that **logging out invalidates session tokens server-side**, not only client-side.
 
 After logout:
 
-* Any previously issued token must be rejected by the server.
+- Previously issued tokens must be rejected.
+- Stolen tokens must become unusable immediately.
 
-* A stolen token must become unusable immediately.
 
-## **4\. Research of Possible Solutions**
+## 4. Design Options Considered
 
-### **Option A – Token Revocation List (jti blacklist)**
+### Option A – Token Revocation List (jti blacklist)
 
-* Add jti (token ID) to JWT.
+- Add a `jti` (token ID) to JWTs.
+- Store revoked token IDs in a database or Redis.
+- Check the blacklist on each request.
 
-* Store revoked token IDs in DB or Redis.
+**Drawbacks**
 
-* Check the blacklist on every request.
+- Requires storing many revoked tokens.
+- Cleanup required after expiration.
+- Increased operational complexity.
 
-**Drawbacks:**
 
-* Requires storing many revoked tokens.
+### Option B – “Not-Valid-Before” Timestamp per User (Recommended)
 
-* Cleanup needed after expiry.
+Each user record stores a timestamp indicating when tokens become valid.
 
-* More operational complexity.  
-* 
+Tokens issued **before** this timestamp are rejected.
 
-### **Option B – “Not Valid Before” Timestamp per User (Recommended)**
+**Advantages**
 
-Recommended in the penetration test report:
+- Only **one database field per user**
+- No token storage required
+- Instantly invalidates prior sessions
+- Simple to implement
+- Scales efficiently
 
-“Each user can have a Not valid before value such that tokens issued before this time are invalid.”
 
-**Advantages:**
+## 5. Proposed Design
 
-* Only **one database field per user**
+### Core Idea
 
-* No token storage required
+Add a timestamp field to each user:
 
-* Invalidates **all previous sessions instantly**
-
-* Simple to implement
-
-* Scales well
-
-## **5\. Proposed Design (Recommended Solution)**
-
-### **Core idea**
-
-Add a timestamp to each user account:
-
-           token\_invalid\_before
+      token\_invalid\_before
 
 * Any JWT issued **before** this time is rejected.
 
@@ -113,14 +86,21 @@ Add a timestamp to each user account:
 
 Add a new column to the users table:
 
-       token\_invalid\_before TIMESTAMP NOT NULL DEFAULT NOW()
+       token_invalid_before TIMESTAMP NOT NULL DEFAULT NOW()
 
 **Upgrade behavior:**  
-During deployment, a database migration will set token\_invalid\_before \= NOW() for all existing users, forcing a one-time re-login. New users are unaffected since their tokens are issued after account creation.
+
+During deployment, a database migration will sets:
+
+       token_invalid_before = NOW()
+ 
+for all existing users, forcing a one-time re-login. 
+New users are unaffected since their tokens are issued after account creation.
+
 
 ### **6.2 JWT Validation Logic (Server Middleware)**
 
-On every authenticated request:
+For each authenticated request:
 
 1. Verify JWT signature
 
@@ -132,11 +112,12 @@ On every authenticated request:
 
    * issued at time (iat)
 
-4. Load user from DB
+4. Load user from Database
 
 5. Compare:  
      
-        if token.iat \< user.token\_invalid\_before → reject (401 Unauthorized)
+        if token.iat < user.token_invalid_before → reject (401 Unauthorized)
+   
 
 ### **6.3 Logout Endpoint Behavior**
 
@@ -144,17 +125,17 @@ Current logout:
 
 * Removes token from browser only
 
-New logout:
+Proposed logout
 
 1. Client removes token
 
 2. Client calls:
 
-                     POST /api/logout
+           POST /api/logout
 
 3. Server updates:  
      
-          token\_invalid\_before \= NOW()
+          token_invalid_before = NOW()
 
 Result:
 
@@ -182,11 +163,11 @@ Result:
 
 5. Replay again
 
-### **Expected new behavior**
+### **Expected result**
 
 Step 5 should return:
 
-           401 Unauthorized
+          401 Unauthorized
 
 ### **Additional tests**
 
@@ -196,6 +177,14 @@ Step 5 should return:
 
 * Multiple devices → all sessions invalidated after logout
 
+
+### **Future work**
+* Automated tests should be added to the OED test suite to verify:
+	* Tokens issued before logout are rejected
+	*	New tokens remain valid
+	*	Session invalidation behaves correctly across deployments
+  
+
 ## **9\. Acceptance Criteria**
 
 * JWTs issued before logout are rejected server-side
@@ -204,7 +193,8 @@ Step 5 should return:
 
 * Logout endpoint updates server state
 
-* Pen test steps no longer reproduce vulnerability
+* Session invalidation verified by tests
+  
 
 ## **10\. Conclusion**
 
