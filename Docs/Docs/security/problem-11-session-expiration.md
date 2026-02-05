@@ -76,7 +76,11 @@ Tokens issued **before** this timestamp are rejected.
 
 Add a timestamp field to each user:
 
-      token\_invalid\_before
+
+```
+   token_invalid_before TIMESTAMP NOT NULL DEFAULT NOW();
+```
+
 
 * Any JWT issued **before** this time is rejected.
 
@@ -86,14 +90,20 @@ Add a timestamp field to each user:
 
 Add a new column to the users table:
 
-       token_invalid_before TIMESTAMP NOT NULL DEFAULT NOW()
+```
+ALTER TABLE users
+ADD COLUMN token_invalid_before TIMESTAMP NOT NULL DEFAULT NOW();
+```
 
 **Upgrade behavior:**  
 
 During deployment, a database migration will sets:
 
-       token_invalid_before = NOW()
- 
+    ```
+    UPDATE users
+    SET token_invalid_before = NOW();
+    ```
+    
 for all existing users, forcing a one-time re-login. 
 New users are unaffected since their tokens are issued after account creation.
 
@@ -116,7 +126,7 @@ For each authenticated request:
 
 5. Compare:  
      
-        if token.iat < user.token_invalid_before → reject (401 Unauthorized)
+       `if token.iat < user.token_invalid_before` → reject (401 Unauthorized)
    
 
 ### **6.3 Logout Endpoint Behavior**
@@ -125,18 +135,20 @@ Current logout:
 
 * Removes token from browser only
 
-Proposed logout
+Proposed logout:
 
 1. Client removes token
 
 2. Client calls:
 
-           POST /api/logout
+    `POST /api/logout`
 
 3. Server updates:  
-     
-          token_invalid_before = NOW()
-
+   ```
+   UPDATE users
+   SET token_invalid_before = NOW()
+   WHERE id = :user_id;
+   ```
 Result:
 
 * All previous tokens become invalid immediately.
@@ -180,7 +192,7 @@ Step 5 should return:
 
 ### **Future work**
 * Automated tests should be added to the OED test suite to verify:
-	* Tokens issued before logout are rejected
+	*   Tokens issued before logout are rejected
 	*	New tokens remain valid
 	*	Session invalidation behaves correctly across deployments
   
