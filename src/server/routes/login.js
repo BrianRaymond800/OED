@@ -53,12 +53,29 @@ router.post('/', credentialsRequestValidationMiddleware, async (req, res) => {
 			}
 			if (isValid) {
 				const token = jwt.sign({ data: user.id }, secretToken, { expiresIn: 86400 });
+				log.info({
+					event: "auth.login.success",
+					timestamp: new Date().toISOString(),
+					route: req.originalUrl,
+					statusCode: 200,
+					username: req.body.username,
+					ip: req.ip
+				});
 				res.json({ token: token, username: user.username, role: user.role });
 			} else {
 				throw new Error('Unauthorized password');
 			}
 		} catch (err) {
 			if (err.message === 'Unauthorized password' || err.message === 'No data returned from the query.') {
+				log.warn({
+					event: "auth.login.failed",
+					timestamp: new Date().toISOString(),
+					route: req.originalUrl,
+					statusCode: 401,
+					username: req.body.username,
+					ip: req.ip,
+					reason: "invalid_credentials"
+				});
 				res.status(401).send({ text: 'Not authorized' });
 			} else {
 				log.error(`Unable to check user password for ${req.body.username}`, err);

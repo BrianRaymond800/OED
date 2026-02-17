@@ -41,6 +41,14 @@ authMiddleware = (req, res, next) => {
 		});
 	} else {
 		res.status(403).send({ success: false, message: 'No token provided.' });
+		log.info({
+			event: "auth.token.missing",
+			timestamp: new Date().toISOString(),
+			route: req.originalUrl,
+			method: req.method,
+			statusCode: 403,
+			ip: req.ip
+		  });
 	}
 };
 

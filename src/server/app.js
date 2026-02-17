@@ -111,7 +111,21 @@ const loginLimiter = rateLimit({
 	windowMs: 4 * 1000, // 4 seconds
 	limit: 1, // 1 requests
 	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-	legacyHeaders: false // Disable the `X-RateLimit-*` headers
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+	handler: (req, res) =>{
+		log.warn({
+			event: "auth.login.rate_limit",
+			timestamp: new Date().toISOString(),
+			route: req.originalUrl,
+			statusCode: 429,
+			username: req.body?.username || "unknown",
+			ip: req.ip
+		});
+		res.status(429).json({
+			error: `Too many login attempts. Please try again later.`
+		});
+
+	}
 });
 // Apply the login limit
 app.use('/api/login', loginLimiter);
@@ -126,6 +140,7 @@ app.use(favicon(path.join(__dirname, '..', 'client', 'public', 'favicon.ico')));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: false, limit: '50mb' }));
 
+app.use('/api/login', login);
 app.use('/api/users', users);
 app.use('/api/meters', meters);
 app.use('/api/readings', readings);
