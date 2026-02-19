@@ -28,20 +28,13 @@ const obvius = require('../util').obvius;
 const { obviusUsernameAndPasswordAuthMiddleware } = require('./authenticator');
 const { getConnection } = require('../db');
 const escapeHtml = require('escape-html');
+const { sanitizeForLog } = require('../util/sanitizeForLog');
 
 const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 
 router.use(upload.any(), middleware.lowercaseAllParamNames);
 router.use(middleware.paramsLookupMixin);
-
-function canonicalize(value) {
-	return String(value).normalize('NFKC');
-}
-
-function sanitizeForLog(value) {
-	return canonicalize(value).replace(/[\r\n\t]/g, '_');
-}
 
 function getClientIp(req) {
 	const rawIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
