@@ -23,9 +23,9 @@ Open Energy Dashboard – Penetration Test Final Report (July 25, 2024)
 ## Summary
 - Total Findings: 19  
 - ✅ Done: 1  
-- 🟡 In Progress: 12 
+- 🟡 In Progress: 14 
 - 🔴 Not Started: 3  
-- ⚠️ Design Only: 11
+- ⚠️ Design Only: 1
 
 Note: “Upstream OED PR Evidence” refers to pull requests in the
 official OpenEnergyDashboard/OED repository when applicable.
@@ -38,8 +38,7 @@ official OpenEnergyDashboard/OED repository when applicable.
 | 2 | Insecure Default Configuration | High | Team-5 tracking | OED PR #1554 | 🟡 In Progress | Zack | Fix exists but PR still open and requires changes |
 | 3 | Cross-Site Scripting (XSS) | Medium | #69, #98 | OED PR #1544 | ✅ Done | Zach | Fix and validation completed |
 | 4 | Insecure Docker Configuration | Medium | #70, #99 | — | 🔴 Not Started | — | No assigned owner and no implementation work initiated |
-| 5 | Hard-Coded Database Credentials | Medium | #71, #101 | — | 🟡 Research In Progress
- | Oye | Research document uploaded; secure secret-management design phase pending implementation |
+| 5 | Hard-Coded Database Credentials | Medium | #71, #101 | — | 🟡 In Progress | Oye | Research document uploaded; secure secret-management design phase pending implementation |
 | 6 | Missing Content Security Policy | Medium | #72, #102 | OED PR #1567 | 🟡 In Progress | Brian | PR open and requires requested changes |
 | 7 | Known Vulnerabilities in Software Components | Medium | Design docs | — | 🟡 In Progress | Oye, Andrew | Design approved; supplemental security implementation in progress|
 | 8 | Insufficient Input Validation | Medium | #74, #106 | — | 🟡 In Progress | Brian | Validation testing still ongoing |
@@ -51,6 +50,6 @@ official OpenEnergyDashboard/OED repository when applicable.
 | 14 | Information Disclosure | Minimal | #80, #93 | — | 🟡 In Progress | Zack | Design and validation pending |
 | 15 | Clickjacking (UI Redress) | Low | #81, #113 | — | 🔴 Not Started | — | No assigned owner and no implementation work initiated |
 | 16 | Log Injection | Minimal | #82, #114 | — | 🟡 In Progress | Zach | Sanitization incomplete |
-| 17 | Session Tokens Stored in Local Storage | Low | #83, #115 | — | 🟡 Implementation In Progress| Krista | Migrating authentication from local storage to secure cookies; validation pending |
+| 17 | Session Tokens Stored in Local Storage | Low | #83, #115 | — | 🟡 In Progress | Krista | Migrating authentication from local storage to secure cookies; validation pending |
 | 18 | Incorrect HTTP Response Codes | Minimal | #84, #116 | — | 🟡 Design & Implementation In Progress  | Andrew | Remediation strategy and implementation underway |
 | 19 | Business Logic Issues | Minimal | #85, #117 | — | 🟡 Design & Validation In Progress | Brian | Business logic review and validation testing ongoing |
