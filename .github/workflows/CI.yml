@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [dev, prod]
+    branches: [development, main]
   push:
-    branches: [dev, prod]
+    branches: [development, main]
 
 jobs:
   oed-tests:
@@ -46,3 +46,4 @@ jobs:
         if: always()
         run: |
           docker compose down -v
+
