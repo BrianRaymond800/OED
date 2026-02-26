@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const secretToken = require('../config').secretToken;
 const validate = require('jsonschema').validate;
+const classLogger = require('../../../logger');
 const { log } = require('../log');
 const { getConnection } = require('../db');
 const { credentialsRequestValidationMiddleware } = require('./authenticator');
@@ -39,6 +40,11 @@ router.post('/', credentialsRequestValidationMiddleware, async (req, res) => {
 	};
 
 	if (!validate(req.body, validParams).valid) {
+		classLogger.info({
+			event: "auth.login.validation_failed",
+			message: "Authentication failed",
+			statusCode: "400",
+		});
 		res.sendStatus(400);
 	} else {
 		const conn = getConnection();
@@ -48,18 +54,20 @@ router.post('/', credentialsRequestValidationMiddleware, async (req, res) => {
 			if (user === null) {
 				// User did not exist so return false.
 				isValid = false;
+				classLogger.info({
+					event: "auth.login.failed",
+					message: "user_not_found",
+					statusCode: "401"
+				});
 			} else {
 				isValid = await bcrypt.compare(req.body.password, user.passwordHash);
 			}
 			if (isValid) {
 				const token = jwt.sign({ data: user.id }, secretToken, { expiresIn: 86400 });
-				log.info({
+				classLogger.info({
 					event: "auth.login.success",
-					timestamp: new Date().toISOString(),
-					route: req.originalUrl,
-					statusCode: 200,
-					username: req.body.username,
-					ip: req.ip
+					message: "successful login",
+					statusCode: "200"
 				});
 				res.json({ token: token, username: user.username, role: user.role });
 			} else {
@@ -67,17 +75,18 @@ router.post('/', credentialsRequestValidationMiddleware, async (req, res) => {
 			}
 		} catch (err) {
 			if (err.message === 'Unauthorized password' || err.message === 'No data returned from the query.') {
-				log.warn({
+				classLogger.info({
 					event: "auth.login.failed",
-					timestamp: new Date().toISOString(),
-					route: req.originalUrl,
-					statusCode: 401,
-					username: req.body.username,
-					ip: req.ip,
-					reason: "invalid_credentials"
+					message: "Failed authentication",
+					statusCode: "401"
 				});
 				res.status(401).send({ text: 'Not authorized' });
 			} else {
+				classLogger.error({
+					event: "auth.login.error",
+					message: "authentication error",
+					statusCode: "500",
+				});
 				log.error(`Unable to check user password for ${req.body.username}`, err);
 				res.status(500).send({ text: 'Internal Server Error' });
 			}

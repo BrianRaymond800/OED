@@ -12,7 +12,7 @@ const bodyParser = require('body-parser');
 const config = require('./config');
 
 const { log, LogLevel } = require('./log');
-
+const classLogger = require('../../logger');
 const users = require('./routes/users');
 const readings = require('./routes/readings');
 const meters = require('./routes/meters');
@@ -113,14 +113,11 @@ const loginLimiter = rateLimit({
 	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 	handler: (req, res) =>{
-		log.warn({
+		classLogger.info({
 			event: "auth.login.rate_limit",
-			timestamp: new Date().toISOString(),
-			route: req.originalUrl,
-			statusCode: 429,
-			username: req.body?.username || "unknown",
-			ip: req.ip
-		});
+			message: "Maximum number of request reached",
+			statusCode: "429"
+		  });
 		res.status(429).json({
 			error: `Too many login attempts. Please try again later.`
 		});

@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const secretToken = require('../config').secretToken;
 const User = require('../models/User');
+const classLogger = require('../../../logger');
 const { log } = require('../log');
 const validate = require('jsonschema').validate;
 const { isTokenAuthorized, isUserAuthorized } = require('../util/userRoles');
@@ -23,6 +24,11 @@ authMiddleware = (req, res, next) => {
 		type: 'string'
 	};
 	if (!validate(token, validParams).valid) {
+		classLogger.info({
+			event: "auth.token.missing",
+			message: "Missing token",
+			statusCode: "403"
+		});
 		res.status(403).json({ success: false, message: 'No token provided or JSON was invalid.' });
 	} else if (token) {
 		jwt.verify(token, secretToken, async (err, decoded) => {
@@ -40,15 +46,12 @@ authMiddleware = (req, res, next) => {
 			}
 		});
 	} else {
-		res.status(403).send({ success: false, message: 'No token provided.' });
-		log.info({
+		classLogger.info({
 			event: "auth.token.missing",
-			timestamp: new Date().toISOString(),
-			route: req.originalUrl,
-			method: req.method,
-			statusCode: 403,
-			ip: req.ip
-		  });
+			message: "Missing token",
+			statusCode: "403"
+		});
+		res.status(403).send({ success: false, message: 'No token provided.' });
 	}
 };
 
