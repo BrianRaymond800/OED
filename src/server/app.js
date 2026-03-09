@@ -126,6 +126,7 @@ app.use(favicon(path.join(__dirname, '..', 'client', 'public', 'favicon.ico')));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: false, limit: '50mb' }));
 
+app.use('/api/login', login);
 app.use('/api/users', users);
 app.use('/api/meters', meters);
 app.use('/api/readings', readings);
