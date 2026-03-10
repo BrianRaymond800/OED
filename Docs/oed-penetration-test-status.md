@@ -23,8 +23,8 @@ Open Energy Dashboard – Penetration Test Final Report (July 25, 2024)
 ## Summary
 - Total Findings: 19  
 - ✅ Done: 1  
-- 🟡 In Progress: 14 
-- 🔴 Not Started: 3  
+- 🟡 In Progress: 15
+- 🔴 Not Started: 2
 - ⚠️ Design Only: 1
 
 Note: “Upstream OED PR Evidence” refers to pull requests in the
@@ -37,7 +37,7 @@ official OpenEnergyDashboard/OED repository when applicable.
 | 1 | Insufficient Access Controls | Critical | Issue #118 | — | 🟡 In Progress | Andrew | Access control enforcement still incomplete |
 | 2 | Insecure Default Configuration | High | Team-5 tracking | OED PR #1554 | 🟡 In Progress | Zack | Fix exists but PR still open and requires changes |
 | 3 | Cross-Site Scripting (XSS) | Medium | #69, #98 | OED PR #1544 | ✅ Done | Zach | Fix and validation completed |
-| 4 | Insecure Docker Configuration | Medium | #70, #99 | — | 🔴 Not Started | — | No assigned owner and no implementation work initiated |
+| 4 | Insecure Docker Configuration | Medium | #70, #99, PR #165 | — | 🟡 In Progress | Oye | Container previously ran as root. Dockerfile updated to run container as non-root `node` user; PR submitted and awaiting review |
 | 5 | Hard-Coded Database Credentials | Medium | #71, #101 | — | 🟡 In Progress | Oye | Research document uploaded; secure secret-management design phase pending implementation |
 | 6 | Missing Content Security Policy | Medium | #72, #102 | OED PR #1567 | 🟡 In Progress | Brian | PR open and requires requested changes |
 | 7 | Known Vulnerabilities in Software Components | Medium | Design docs | — | 🟡 In Progress | Oye, Andrew | Design approved; supplemental security implementation in progress|
