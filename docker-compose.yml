@@ -122,6 +122,18 @@ services:
         volumes:
             - ./loki-config.yml:/etc/loki/loki-config.yml
             - loki-data:/loki
+    grafana:
+        image: grafana/grafana
+        container_name: grafana
+        ports:
+            - "4000:3000"
+        restart: unless-stopped
+        volumes:
+            - grafana-storage:/var/lib/grafana
+        depends_on:
+            - loki
+
 
 volumes:
     loki-data: 
+    grafana-storage:

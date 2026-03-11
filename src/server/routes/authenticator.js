@@ -24,15 +24,16 @@ authMiddleware = (req, res, next) => {
 		type: 'string'
 	};
 	if (!validate(token, validParams).valid) {
-		classLogger.info({
-			event: "auth.token.missing",
-			message: "Missing token",
-			statusCode: "403"
-		});
+		classLogger.warn(
+			`auth.token.missing | requestId=${req.requestId} route=${req.originalUrl} statusCode=403 ip=${req.ip}`
+		  );
 		res.status(403).json({ success: false, message: 'No token provided or JSON was invalid.' });
 	} else if (token) {
 		jwt.verify(token, secretToken, async (err, decoded) => {
 			if (err) {
+				classLogger.warn(
+					`auth.token.invalid | requestId=${req.requestId} route=${req.originalUrl} statusCode=401 ip=${req.ip}`
+				  );
 				res.status(401).json({ success: false, message: 'Failed to authenticate token.' });
 			} else {
 				try {
@@ -46,11 +47,9 @@ authMiddleware = (req, res, next) => {
 			}
 		});
 	} else {
-		classLogger.info({
-			event: "auth.token.missing",
-			message: "Missing token",
-			statusCode: "403"
-		});
+		classLogger.warn(
+			`auth.token.missing | requestId=${req.requestId} route=${req.originalUrl} statusCode=403 ip=${req.ip}`
+		  );
 		res.status(403).send({ success: false, message: 'No token provided.' });
 	}
 };

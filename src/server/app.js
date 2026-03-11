@@ -13,6 +13,7 @@ const config = require('./config');
 
 const { log, LogLevel } = require('./log');
 const classLogger = require('../../logger');
+const { v4: uuidv4 } = require('uuid');
 const users = require('./routes/users');
 const readings = require('./routes/readings');
 const meters = require('./routes/meters');
@@ -76,8 +77,16 @@ const generalLimiter = rateLimit({
 		return string
 	}
 });
+
+const app = express();
+
+app.use((req, res, next) => {
+	req.requestId = uuidv4();
+	res.setHeader('X-Request-ID', req.requestId);
+	next();
+});
 // Apply the limit to overall requests
-const app = express().use(generalLimiter);
+app.use(generalLimiter);
 
 // This is limiting 3D-Graphic
 const threeDLimiter = rateLimit({
@@ -113,11 +122,9 @@ const loginLimiter = rateLimit({
 	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 	handler: (req, res) =>{
-		classLogger.info({
-			event: "auth.login.rate_limit",
-			message: "Maximum number of request reached",
-			statusCode: "429"
-		  });
+		classLogger.warn(
+			`auth.login.rate_limit | requestId=${req.requestId} route=${req.originalUrl} statusCode=429 username=${req.body?.username || "unknown"} ip=${req.ip}`
+		  );
 		res.status(429).json({
 			error: `Too many login attempts. Please try again later.`
 		});
