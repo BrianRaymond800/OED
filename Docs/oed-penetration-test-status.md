@@ -22,8 +22,8 @@ Open Energy Dashboard – Penetration Test Final Report (July 25, 2024)
 
 ## Summary
 - Total Findings: 19  
-- ✅ Done: 11  
-- 🟡 In Progress: 6
+- ✅ Done: 12 
+- 🟡 In Progress: 5
 - 🔴 Not Started: 0
 - ⚠️ Design Only: 1
 
@@ -38,7 +38,7 @@ official OpenEnergyDashboard/OED repository when applicable.
 | 2 | Insecure Default Configuration | High | Team-5 tracking | OED PR #1554 | ✅ Done | Zack | Secure configuration changes implemented and submitted upstream for review |
 | 3 | Cross-Site Scripting (XSS) | Medium | #69, #98 | OED PR #1544 | ✅ Done | Zach | XSS protections implemented and validated |
 | 4 | Insecure Docker Configuration | Medium | #70, #99, PR #165 | — | ✅ Done | Oye | Dockerfile updated so web container runs as non-root `node` user to reduce privilege escalation risk |
-| 5 | Hard-Coded Database Credentials | Medium | #71, #101 | — | 🟡 In Progress | Oye | Research completed for secure credential storage using Docker secrets and secret management solutions |
+| 5 | Hard-Coded Database Credentials | Medium | #71, #101, PR #168 | — | ✅ Done | Oye | Hard-coded credentials removed and replaced with environment-variable based secret injection. Docker initialization and CI pipeline updated to securely handle credentials. |
 | 6 | Missing Content Security Policy | Medium | #72, #102 | OED PR #1567 | ✅ Done | Brian | Content Security Policy headers implemented and submitted for upstream review |
 | 7 | Known Vulnerabilities in Software Components | Medium | Design docs | — | ✅ Done | Oye, Andrew | Patch management workflow created to track and update vulnerable dependencies |
 | 8 | Insufficient Input Validation | Medium | #74, #106 | — | ✅ Done | Brian | Server-side validation implemented across multiple routes to prevent malformed input |
